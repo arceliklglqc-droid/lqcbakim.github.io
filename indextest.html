@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Veri Giriş Sitesi</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <!-- SheetJS: Excel'e aktarım için -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    const { useState, useEffect } = React;
+
+    function isValidSicilNo(sicilNo) {
+      return sicilNo === "00n" || sicilNo === "00m" || sicilNo === "00eng";
+    }
+
+    const ADMIN_PASSWORD = "lqcadmin012";
+
+    const TABLE_HEADERS = [
+      "Sicil No", "Tarih", "Vardiya", "Hat", "Dummy No",
+      "Jig No", "Hata Kodu", "Değişen Parça", "Parça Adedi", "Açıklama"
+    ];
+
+    // Generate Jig No Options: A1-150, B1-150, C1-150
+    const generateJigNoOptions = () => {
+      const arr = [];
+      for (let p of ['A', 'B', 'C']) {
+        for (let i = 1; i <= 150; i++) {
+          arr.push(`${p}${i}`);
+        }
+      }
+      return arr;
+    };
+
+    const App = () => {
+      const [formData, setFormData] = useState({
+        sicilNo: '',
+        tarih: new Date().toISOString().split('T')[0],
+        vardiya: '',
+        hat: '',
+        dummyNo: '',
+        jigNo: '',
+        hataKodu: '',
+        degisenParca: '',
+        parcaAdedi: '',
+        aciklama: '',
+        hataKoduManual: false,
+        degisenParcaManual: false,
+        customHataKodu: '',
+        customDegisenParca: ''
+      });
+
+      const [tableData, setTableData] = useState([]);
+      const [errors, setErrors] = useState({});
+      const [submissionMessage, setSubmissionMessage] = useState('');
+      const [isAdmin, setIsAdmin] = useState(false);
+      const [adminInput, setAdminInput] = useState('');
+      const [adminError, setAdminError] = useState('');
+
+      const vardiyaOptions = ['1 - Gece', '2 - Sabah', '3 - Akşam'];
+      const hatOptions = ["İç", "İç 1", "İç 2", "Dış","Dış 1","Dış 2", "Mix", "CAC", "Genel"];
+      const dummyNoOptions = Array.from({length: 42}, (_, i) => (i+1).toString());
+      const jigNoOptions = generateJigNoOptions();
+      const hataKoduOptions = ['H001', 'H002', 'H003', 'H004'];
+      const degisenParcaOptions = ['Uçluk', 'Mıknatıs', 'Terminal', 'Kablo', 'Oring'];
+      const parcaAdediOptions = Array.from({length: 10}, (_, i) => (i+1).toString());
+
+      useEffect(() => {
+        try {
+          const savedData = localStorage.getItem('tableData');
+          if (savedData) {
+            setTableData(JSON.parse(savedData));
+          }
+        } catch (error) {
+          console.error('localStorage yükleme hatası:', error);
+        }
+      }, []);
+
+      const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({
+          ...prev,
+          [name]: type === 'checkbox' ? checked : value
+        }));
+        setErrors(prev => ({ ...prev, [name]: null }));
+      };
+
+      // For select-only fields, ensure that only valid options can be selected
+      const handleSelectChange = (e, options) => {
+        const { name, value } = e.target;
+        // Boş değer de kabul, options içinde "" yoksa da silinebilsin
+        if (value === "" || options.includes(value)) {
+          setFormData(prev => ({
+            ...prev,
+            [name]: value
+          }));
+        }
+        setErrors(prev => ({ ...prev, [name]: null }));
+      };
+
+      const validateForm = () => {
+        const newErrors = {};
+        if (!formData.sicilNo) {
+          newErrors.sicilNo = 'Sicil No zorunludur';
+        } else if (!isValidSicilNo(formData.sicilNo)) {
+          newErrors.sicilNo = 'Geçersiz Sicil No';
+        }
+        if (!formData.tarih) newErrors.tarih = 'Tarih zorunludur';
+        if (!formData.vardiya) newErrors.vardiya = 'Vardiya zorunludur';
+        if (!formData.hat) newErrors.hat = 'Hat zorunludur';
+        if (!formData.hataKodu && !formData.customHataKodu) newErrors.hataKodu = 'Hata Kodu zorunludur';
+        if (!formData.aciklama) newErrors.aciklama = 'Açıklama zorunludur';
+        // Only allow valid values for select-only fields
+        if (formData.dummyNo && !dummyNoOptions.includes(formData.dummyNo)) {
+          newErrors.dummyNo = 'Sadece listeden seçiniz';
+        }
+        if (formData.jigNo && !jigNoOptions.includes(formData.jigNo)) {
+          newErrors.jigNo = 'Sadece listeden seçiniz';
+        }
+        if (formData.degisenParca && !degisenParcaOptions.includes(formData.degisenParca)) {
+          newErrors.degisenParca = 'Sadece listeden seçiniz';
+        }
+        if (formData.parcaAdedi && !parcaAdediOptions.includes(formData.parcaAdedi)) {
+          newErrors.parcaAdedi = 'Sadece listeden seçiniz';
+        }
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+      };
+
+      const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcxXAPhNdk5wmIVBeGezpApExtnI1J9EK-RS3Dg6JYw7TWBJKijR6LcikIO_ASaZbF/exec";
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (validateForm()) {
+          const newEntry = {
+            sicilNo: formData.sicilNo,
+            tarih: formData.tarih,
+            vardiya: formData.vardiya,
+            hat: formData.hat,
+            dummyNo: formData.dummyNo || '-',
+            jigNo: formData.jigNo || '-',
+            hataKodu: formData.hataKoduManual ? formData.customHataKodu : formData.hataKodu,
+            degisenParca: formData.degisenParcaManual ? formData.customDegisenParca : formData.degisenParca || '-',
+            parcaAdedi: formData.parcaAdedi || '-',
+            aciklama: formData.aciklama
+          };
+          try {
+            await fetch(GOOGLE_SCRIPT_URL, {
+              method: "POST",
+              mode: "no-cors",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(newEntry)
+            });
+            setSubmissionMessage('Kayıt başarıyla Google Sheets\'e eklendi!');
+            setTableData(prev => [...prev, newEntry]);
+          } catch (error) {
+            setSubmissionMessage('Google Sheets\'e kaydedilemedi!');
+          }
+          setFormData({
+            sicilNo: '',
+            tarih: new Date().toISOString().split('T')[0],
+            vardiya: '',
+            hat: '',
+            dummyNo: '',
+            jigNo: '',
+            hataKodu: '',
+            degisenParca: '',
+            parcaAdedi: '',
+            aciklama: '',
+            hataKoduManual: false,
+            degisenParcaManual: false,
+            customHataKodu: '',
+            customDegisenParca: ''
+          });
+          setErrors({});
+        } else {
+          setSubmissionMessage('Lütfen tüm zorunlu alanları doldurun.');
+        }
+        setTimeout(() => setSubmissionMessage(''), 3000);
+      };
+
+      // Admin login işlemi
+      const handleAdminLogin = (e) => {
+        e.preventDefault();
+        if (adminInput === ADMIN_PASSWORD) {
+          setIsAdmin(true);
+          setAdminError('');
+        } else {
+          setIsAdmin(false);
+          setAdminError('Yanlış admin şifresi!');
+        }
+        setAdminInput('');
+      };
+
+      // Bir satırı sil
+      const handleDeleteRow = (index) => {
+        if (!window.confirm("Kaydı silmek istediğinize emin misiniz?")) return;
+        const newTableData = tableData.slice();
+        newTableData.splice(index, 1);
+        setTableData(newTableData);
+        try {
+          localStorage.setItem('tableData', JSON.stringify(newTableData));
+        } catch (error) {
+          // hata vermesin
+        }
+      };
+
+      // Tabloyu Excel'e aktar (sadece admin)
+      const handleExportExcel = () => {
+        const aoa = [
+          TABLE_HEADERS,
+          ...tableData.map(entry => [
+            entry.sicilNo, entry.tarih, entry.vardiya, entry.hat, entry.dummyNo,
+            entry.jigNo, entry.hataKodu, entry.degisenParca, entry.parcaAdedi, entry.aciklama
+          ])
+        ];
+        const worksheet = XLSX.utils.aoa_to_sheet(aoa);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Kayıtlar");
+        XLSX.writeFile(workbook, "veri_kayitlari.xlsx");
+      };
+
+      // --- Custom select component for dropdown with search, but no manual entry ---
+      // GÜNCELLENDİ: Seçimi kaldırmak için başa "Seçimi Kaldır" eklendi.
+      function SearchableSelect({name, value, options, onChange, placeholder, required, error}) {
+        const [search, setSearch] = useState("");
+        const [showOptions, setShowOptions] = useState(false);
+
+        // Seçimi Kaldır seçeneğini başa ekle
+        const allOptions = [{ label: 'Seçimi Kaldır', value: '' }, ...options.map(opt => ({ label: opt, value: opt }))];
+        const filteredOptions = allOptions.filter(opt =>
+          opt.label.toLowerCase().includes(search.toLowerCase())
+        );
+
+        const handleSelect = (option) => {
+          onChange({ target: { name, value: option.value } });
+          setSearch(""); // reset search
+          setShowOptions(false);
+        };
+
+        const handleInputChange = (e) => {
+          setSearch(e.target.value);
+        };
+
+        const onBlur = () => setTimeout(() => setShowOptions(false), 150);
+
+        return React.createElement('div', { className: 'relative' },
+          [
+            React.createElement('input', {
+              key: 'input',
+              type: 'text',
+              name,
+              value: value ? value : search,
+              autoComplete: 'off',
+              placeholder,
+              className: `mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white ${error ? "border-red-500" : ""}`,
+              required,
+              readOnly: false,
+              onChange: handleInputChange,
+              onFocus: () => setShowOptions(true),
+              onBlur,
+              onKeyDown: (e) => {
+                if (e.key === "Enter") e.preventDefault();
+              }
+            }),
+            showOptions && React.createElement('div', {
+              key: 'dropdown',
+              className: 'absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded shadow max-h-40 overflow-y-auto'
+            },
+              filteredOptions.length > 0
+                ? filteredOptions.map(opt =>
+                    React.createElement('div', {
+                      key: opt.value,
+                      className: `px-3 py-2 hover:bg-blue-100 cursor-pointer${opt.value === value ? ' bg-blue-200' : ''}`,
+                      onMouseDown: () => handleSelect(opt)
+                    }, opt.label)
+                  )
+                : React.createElement('div', { className: 'px-3 py-2 text-gray-400' }, 'Seçenek yok')
+            ),
+            error && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, error)
+          ]
+        );
+      }
+
+      return React.createElement(
+        'div',
+        { className: 'container mx-auto p-4 bg-gray-100 min-h-screen' },
+        [
+          React.createElement('h1', { className: 'text-2xl font-bold mb-4 text-center' }, 'Veri Giriş Formu'),
+          // Admin giriş kutusu
+          React.createElement(
+            'div',
+            { className: 'mb-4 flex items-center gap-2' },
+            [
+              React.createElement('form', { onSubmit: handleAdminLogin, className: 'flex items-center gap-2' }, [
+                React.createElement('input', {
+                  type: 'password',
+                  value: adminInput,
+                  onChange: (e) => setAdminInput(e.target.value),
+                  className: 'border border-gray-300 rounded-md p-2',
+                  placeholder: 'Admin şifresi',
+                  autoComplete: 'off'
+                }),
+                React.createElement('button', {
+                  type: 'submit',
+                  className: 'bg-gray-700 text-white px-3 py-2 rounded hover:bg-gray-900'
+                }, isAdmin ? 'Admin Mod Açık' : 'Admin Giriş')
+              ]),
+              adminError && React.createElement('span', { className: 'text-red-500 ml-2 text-xs' }, adminError),
+              isAdmin && React.createElement('span', { className: 'ml-2 text-green-600 font-semibold' }, 'Admin aktif')
+            ]
+          ),
+          // Form
+          React.createElement(
+            'form',
+            { onSubmit: handleSubmit, className: 'bg-white p-6 rounded-lg shadow-md mb-6' },
+            [
+              // Sicil No
+              React.createElement(
+                'div',
+                { className: 'mb-4' },
+                [
+                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Sicil No *'),
+                  React.createElement('input', {
+                    type: 'text',
+                    name: 'sicilNo',
+                    value: formData.sicilNo,
+                    onChange: handleChange,
+                    className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
+                    placeholder: 'Yazınız',
+                    required: true,
+                    autoComplete: 'off'
+                  }),
+                  errors.sicilNo && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.sicilNo)
+                ]
+              ),
+              // Tarih
+              React.createElement(
+                'div',
+                { className: 'mb-4' },
+                [
+                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Tarih *'),
+                  React.createElement('input', {
+                    type: 'date',
+                    name: 'tarih',
+                    value: formData.tarih,
+                    onChange: handleChange,
+                    className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
+                    required: true
+                  }),
+                  errors.tarih && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.tarih)
+                ]
+              ),
+              // Vardiya
+              React.createElement(
+                'div',
+                { className: 'mb-4' },
+                [
+                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Vardiya *'),
+                  React.createElement('input', {
+                    type: 'text',
+                    name: 'vardiya',
+                    value: formData.vardiya,
+                    onChange: handleChange,
+                    list: 'vardiya-list',
+                    className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
+                    placeholder: 'Seçiniz veya yazınız',
+                    required: true
+                  }),
+                  React.createElement('datalist', { id: 'vardiya-list' },
+                    vardiyaOptions.map(option =>
+                      React.createElement('option', { key: option, value: option })
+                    )
+                  ),
+                  errors.vardiya && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.vardiya)
+                ]
+              ),
+              // Hat
+              React.createElement(
+                'div',
+                { className: 'mb-4' },
+                [
+                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Hat *'),
+                  React.createElement('input', {
+                    type: 'text',
+                    name: 'hat',
+                    value: formData.hat,
+                    onChange: handleChange,
+                    list: 'hat-list',
+                    className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
+                    placeholder: 'Seçiniz veya yazınız',
+                    required: true
+                  }),
+                  React.createElement('datalist', { id: 'hat-list' },
+                    hatOptions.map(option =>
+                      React.createElement('option', { key: option, value: option })
+                    )
+                  ),
+                  errors.hat && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.hat)
+                ]
+              ),
+              // Dummy No (dropdown, search, no manual entry)
+              React.createElement(
+                'div',
+                { className: 'mb-4' },
+                [
+                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Dummy No'),
+                  React.createElement(SearchableSelect, {
+                    name: 'dummyNo',
+                    value: formData.dummyNo,
+                    options: dummyNoOptions,
+                    onChange: (e) => handleSelectChange(e, dummyNoOptions),
+                    placeholder: 'Seçiniz',
+                    required: false,
+                    error: errors.dummyNo
+                  }),
+                ]
+              ),
+              // Jig No (dropdown, search, no manual entry)
+              React.createElement(
+                'div',
+                { className: 'mb-4' },
+                [
+                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Jig No'),
+                  React.createElement(SearchableSelect, {
+                    name: 'jigNo',
+                    value: formData.jigNo,
+                    options: jigNoOptions,
+                    onChange: (e) => handleSelectChange(e, jigNoOptions),
+                    placeholder: 'Seçiniz',
+                    required: false,
+                    error: errors.jigNo
+                  }),
+                ]
+              ),
+              // Hata Kodu
+              React.createElement(
+                'div',
+                { className: 'mb-4' },
+                [
+                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Hata Kodu *'),
+                  React.createElement(
+                    'div',
+                    { className: 'flex items-center mb-2' },
+                    [
+                      React.createElement('input', {
+                        type: 'checkbox',
+                        name: 'hataKoduManual',
+                        checked: formData.hataKoduManual,
+                        onChange: handleChange,
+                        className: 'mr-2'
+                      }),
+                      React.createElement('span', null, 'Manuel Giriş')
+                    ]
+                  ),
+                  formData.hataKoduManual
+                    ? React.createElement('input', {
+                        type: 'text',
+                        name: 'customHataKodu',
+                        value: formData.customHataKodu,
+                        onChange: handleChange,
+                        className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
+                        placeholder: 'Hata kodunu giriniz'
+                      })
+                    : React.createElement('input', {
+                        type: 'text',
+                        name: 'hataKodu',
+                        value: formData.hataKodu,
+                        onChange: handleChange,
+                        list: 'hataKodu-list',
+                        className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
+                        placeholder: 'Seçiniz veya yazınız'
+                      }),
+                  !formData.hataKoduManual && React.createElement('datalist', { id: 'hataKodu-list' },
+                    hataKoduOptions.map(option =>
+                      React.createElement('option', { key: option, value: option })
+                    )
+                  ),
+                  errors.hataKodu && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.hataKodu)
+                ]
+              ),
+              // Değişen Parça (dropdown, search, no manual entry)
+              React.createElement(
+                'div',
+                { className: 'mb-4' },
+                [
+                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Değişen Parça'),
+                  // Manuel giriş kaldırıldı!
+                  React.createElement(SearchableSelect, {
+                    name: 'degisenParca',
+                    value: formData.degisenParca,
+                    options: degisenParcaOptions,
+                    onChange: (e) => handleSelectChange(e, degisenParcaOptions),
+                    placeholder: 'Seçiniz',
+                    required: false,
+                    error: errors.degisenParca
+                  }),
+                ]
+              ),
+              // Parça Adedi (dropdown, search, no manual entry)
+              React.createElement(
+                'div',
+                { className: 'mb-4' },
+                [
+                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Parça Adedi'),
+                  React.createElement(SearchableSelect, {
+                    name: 'parcaAdedi',
+                    value: formData.parcaAdedi,
+                    options: parcaAdediOptions,
+                    onChange: (e) => handleSelectChange(e, parcaAdediOptions),
+                    placeholder: 'Seçiniz',
+                    required: false,
+                    error: errors.parcaAdedi
+                  }),
+                ]
+              ),
+              // Açıklama
+              React.createElement(
+                'div',
+                { className: 'mb-4' },
+                [
+                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Açıklama *'),
+                  React.createElement('textarea', {
+                    name: 'aciklama',
+                    value: formData.aciklama,
+                    onChange: handleChange,
+                    className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
+                    rows: 4,
+                    required: true
+                  }),
+                  errors.aciklama && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.aciklama)
+                ]
+              ),
+              // Kaydet Butonu ve Kayıt Mesajı (YATAY YAN YANA)
+              React.createElement(
+                'div',
+                { className: 'flex items-center gap-4' },
+                [
+                  React.createElement(
+                    'button',
+                    { type: 'submit', className: 'bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600' },
+                    'Kaydet'
+                  ),
+                  submissionMessage && React.createElement(
+                    'span',
+                    { className: `text-sm ${submissionMessage.includes('başarıyla') ? 'text-green-500' : 'text-red-500'}` },
+                    submissionMessage
+                  )
+                ]
+              )
+            ]
+          ),
+          // Tablo ve Excel'e Aktar Düğmesi
+          React.createElement(
+            'div',
+            { className: 'bg-white p-6 rounded-lg shadow-md overflow-x-auto' },
+            [
+              React.createElement(
+                'div',
+                { className: 'flex justify-between items-center mb-4' },
+                [
+                  React.createElement('h2', { className: 'text-xl font-bold' }, 'Kayıtlar'),
+                  (isAdmin && tableData.length > 0) && React.createElement(
+                    'button',
+                    {
+                      onClick: handleExportExcel,
+                      className: 'bg-green-500 hover:bg-green-700 text-white px-4 py-2 rounded-md'
+                    },
+                    'Excel\'e Aktar'
+                  )
+                ]
+              ),
+              tableData.length > 0 ? React.createElement(
+                'table',
+                { className: 'min-w-full border border-gray-300' },
+                [
+                  React.createElement(
+                    'thead',
+                    null,
+                    React.createElement(
+                      'tr',
+                      { className: 'bg-gray-100' },
+                      [
+                        ...TABLE_HEADERS.map(header =>
+                          React.createElement('th', { className: 'border border-gray-300 p-2 text-left', key: header }, header)
+                        ),
+                        isAdmin && React.createElement('th', { className: 'border border-gray-300 p-2 text-left' }, 'Sil')
+                      ]
+                    )
+                  ),
+                  React.createElement(
+                    'tbody',
+                    null,
+                    tableData.map((entry, index) =>
+                      React.createElement(
+                        'tr',
+                        { key: index, className: 'hover:bg-gray-50' },
+                        [
+                          React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.sicilNo),
+                          React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.tarih),
+                          React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.vardiya),
+                          React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.hat),
+                          React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.dummyNo),
+                          React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.jigNo),
+                          React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.hataKodu),
+                          React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.degisenParca),
+                          React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.parcaAdedi),
+                          React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.aciklama),
+                          isAdmin && React.createElement('td', { className: 'border border-gray-300 p-2' },
+                            React.createElement('button', {
+                              onClick: () => handleDeleteRow(index),
+                              className: 'bg-red-500 text-white px-2 py-1 rounded hover:bg-red-700 text-xs'
+                            }, 'Sil')
+                          )
+                        ]
+                      )
+                    )
+                  )
+                ]
+              ) : React.createElement('p', { className: 'text-gray-500' }, 'Henüz kayıt yok.')
+            ]
+          )
+        ]
+      );
+    };
+
+    ReactDOM.render(React.createElement(App), document.getElementById('root'));
+  </script>
+</body>
+</html>
