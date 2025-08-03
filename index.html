@@ -116,11 +116,20 @@
         if (!formData.hataKodu && !formData.customHataKodu) newErrors.hataKodu = 'Hata Kodu zorunludur';
         if (!formData.aciklama) newErrors.aciklama = 'Açıklama zorunludur';
         // Only allow valid values for select-only fields
+        if (formData.vardiya && !vardiyaOptions.includes(formData.vardiya)) {
+          newErrors.vardiya = 'Sadece listeden seçiniz';
+        }
+        if (formData.hat && !hatOptions.includes(formData.hat)) {
+          newErrors.hat = 'Sadece listeden seçiniz';
+        }
         if (formData.dummyNo && !dummyNoOptions.includes(formData.dummyNo)) {
           newErrors.dummyNo = 'Sadece listeden seçiniz';
         }
         if (formData.jigNo && !jigNoOptions.includes(formData.jigNo)) {
           newErrors.jigNo = 'Sadece listeden seçiniz';
+        }
+        if (!formData.hataKoduManual && formData.hataKodu && !hataKoduOptions.includes(formData.hataKodu)) {
+          newErrors.hataKodu = 'Sadece listeden seçiniz';
         }
         if (formData.degisenParca && !degisenParcaOptions.includes(formData.degisenParca)) {
           newErrors.degisenParca = 'Sadece listeden seçiniz';
@@ -140,8 +149,8 @@
           const newEntry = {
             sicilNo: formData.sicilNo,
             tarih: formData.tarih,
-            vardiya: formData.vardiya,
-            hat: formData.hat,
+            vardiya: formData.vardiya || '-',
+            hat: formData.hat || '-',
             dummyNo: formData.dummyNo || '-',
             jigNo: formData.jigNo || '-',
             hataKodu: formData.hataKoduManual ? formData.customHataKodu : formData.hataKodu,
@@ -228,7 +237,7 @@
       };
 
       // --- Custom select component for dropdown with search, but no manual entry ---
-      // GÜNCELLENDİ: Seçimi kaldırmak için başa "Seçimi Kaldır" eklendi.
+      // "Seçimi Kaldır" seçeneği başta olacak şekilde tüm alanlarda kullanılabilir.
       function SearchableSelect({name, value, options, onChange, placeholder, required, error}) {
         const [search, setSearch] = useState("");
         const [showOptions, setShowOptions] = useState(false);
@@ -358,52 +367,38 @@
                   errors.tarih && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.tarih)
                 ]
               ),
-              // Vardiya
+              // Vardiya (dropdown, search, no manual entry)
               React.createElement(
                 'div',
                 { className: 'mb-4' },
                 [
                   React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Vardiya *'),
-                  React.createElement('input', {
-                    type: 'text',
+                  React.createElement(SearchableSelect, {
                     name: 'vardiya',
                     value: formData.vardiya,
-                    onChange: handleChange,
-                    list: 'vardiya-list',
-                    className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
-                    placeholder: 'Seçiniz veya yazınız',
-                    required: true
+                    options: vardiyaOptions,
+                    onChange: (e) => handleSelectChange(e, vardiyaOptions),
+                    placeholder: 'Seçiniz',
+                    required: true,
+                    error: errors.vardiya
                   }),
-                  React.createElement('datalist', { id: 'vardiya-list' },
-                    vardiyaOptions.map(option =>
-                      React.createElement('option', { key: option, value: option })
-                    )
-                  ),
-                  errors.vardiya && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.vardiya)
                 ]
               ),
-              // Hat
+              // Hat (dropdown, search, no manual entry)
               React.createElement(
                 'div',
                 { className: 'mb-4' },
                 [
                   React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Hat *'),
-                  React.createElement('input', {
-                    type: 'text',
+                  React.createElement(SearchableSelect, {
                     name: 'hat',
                     value: formData.hat,
-                    onChange: handleChange,
-                    list: 'hat-list',
-                    className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
-                    placeholder: 'Seçiniz veya yazınız',
-                    required: true
+                    options: hatOptions,
+                    onChange: (e) => handleSelectChange(e, hatOptions),
+                    placeholder: 'Seçiniz',
+                    required: true,
+                    error: errors.hat
                   }),
-                  React.createElement('datalist', { id: 'hat-list' },
-                    hatOptions.map(option =>
-                      React.createElement('option', { key: option, value: option })
-                    )
-                  ),
-                  errors.hat && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.hat)
                 ]
               ),
               // Dummy No (dropdown, search, no manual entry)
@@ -469,20 +464,15 @@
                         className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
                         placeholder: 'Hata kodunu giriniz'
                       })
-                    : React.createElement('input', {
-                        type: 'text',
+                    : React.createElement(SearchableSelect, {
                         name: 'hataKodu',
                         value: formData.hataKodu,
-                        onChange: handleChange,
-                        list: 'hataKodu-list',
-                        className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
-                        placeholder: 'Seçiniz veya yazınız'
+                        options: hataKoduOptions,
+                        onChange: (e) => handleSelectChange(e, hataKoduOptions),
+                        placeholder: 'Seçiniz',
+                        required: true,
+                        error: errors.hataKodu
                       }),
-                  !formData.hataKoduManual && React.createElement('datalist', { id: 'hataKodu-list' },
-                    hataKoduOptions.map(option =>
-                      React.createElement('option', { key: option, value: option })
-                    )
-                  ),
                   errors.hataKodu && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.hataKodu)
                 ]
               ),
