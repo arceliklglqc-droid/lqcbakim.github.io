@@ -61,6 +61,7 @@
       const [isAdmin, setIsAdmin] = useState(false);
       const [adminInput, setAdminInput] = useState('');
       const [adminError, setAdminError] = useState('');
+      const [isLoading, setIsLoading] = useState(false); // Yükleme göstergesi eklendi
 
       const vardiyaOptions = ['1 - Gece', '2 - Sabah', '3 - Akşam'];
       const hatOptions = ["İç", "İç 1", "İç 2", "Dış","Dış 1","Dış 2", "Mix", "CAC", "Genel"];
@@ -146,6 +147,7 @@
       const handleSubmit = async (e) => {
         e.preventDefault();
         if (validateForm()) {
+          setIsLoading(true); // Yükleme başlat
           const newEntry = {
             sicilNo: formData.sicilNo,
             tarih: formData.tarih,
@@ -189,6 +191,7 @@
             customDegisenParca: ''
           });
           setErrors({});
+          setIsLoading(false); // Yükleme durdur
         } else {
           setSubmissionMessage('Lütfen tüm zorunlu alanları doldurun.');
         }
@@ -295,6 +298,29 @@
             ),
             error && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, error)
           ]
+        );
+      }
+
+      // Yükleme spinnerı bileşeni
+      function Spinner() {
+        // tailwind css spinner
+        return React.createElement(
+          'svg',
+          {
+            className: 'animate-spin h-5 w-5 text-white',
+            xmlns: 'http://www.w3.org/2000/svg',
+            fill: 'none',
+            viewBox: '0 0 24 24'
+          },
+          React.createElement('circle', {
+            className: 'opacity-25',
+            cx: '12', cy: '12', r: '10', stroke: 'currentColor', 'stroke-width': '4'
+          }),
+          React.createElement('path', {
+            className: 'opacity-75',
+            fill: 'currentColor',
+            d: 'M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z'
+          })
         );
       }
 
@@ -535,8 +561,15 @@
                 [
                   React.createElement(
                     'button',
-                    { type: 'submit', className: 'bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600' },
-                    'Kaydet'
+                    {
+                      type: 'submit',
+                      className: `bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 flex items-center gap-2 min-w-[90px]`,
+                      disabled: isLoading // Yükleme sırasında buton kilitli
+                    },
+                    [
+                      isLoading && React.createElement(Spinner, { key: 'spinner' }),
+                      isLoading ? 'Kaydediliyor...' : 'Kaydet'
+                    ]
                   ),
                   submissionMessage && React.createElement(
                     'span',
