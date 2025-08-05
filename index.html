@@ -68,7 +68,7 @@
       const dummyNoOptions = Array.from({length: 42}, (_, i) => (i+1).toString());
       const jigNoOptions = generateJigNoOptions();
       const hataKoduOptions = ["B.01 - Bara Fırça Çıkık", "B.02 - Bara Yayı", "B.03 - Bara Kablosu Çıkık", "B.04 - Bara Kablosu Kopuk", "B.05 - Bara Çıkık", "B.06 - Barada Elektrik Yok", "B.07 - Bara Sıkışmış", "B.08 - Bara Soketi Çıkık", "B.09 - Bara Pabuç Arızalı", "B.10 - Bara Kırık", "B.11 - Bara Fırça Kırık", "B.12 - Bara Arızalı", "D.01 - Waiting", "D.02 - Kol Çıkık", "D.03 - Kol Kırık", "D.04 - Kol Gevşek", "D.05 - Kol Plastiği Eksik", "D.06 - Kol Arızalı", "D.07 - Dummy Kablo Kopuk", "D.08 - Dummy Kablo Çıkık", "D.09 - Haberleşme Hatası", "D.11 - Ekran Yok/Kapalı", "D.12 - Ekran Yerinden Çıkık", "D.13 - Enerji Yok", "D.14 - Eeprom Okumuyor", "D.15 - Ürün Çalıştırmıyor", "D.16 - Buzzer Arızası", "D.17 - Basınç Düşük", "D.18 - Basınç Yüksek", "D.19 - Basınçlar Ters", "D.20 - Basınç Göstermiyor", "D.21 - Basınç Hatası", "D.22 - Data Atmıyor", "G.01 - Sigorta Arızalı", "G.02 - Lehim Kopuk", "G.03 - Krokodil Kopuk", "G.04 - Krokodil Kırık", "G.05 - Krokodil Arızalı", "G.06 - Vida Yok", "G.07 - Ayak Yok", "G.08 - Ayak Çıkık", "G.09 - Ayak Arızalı", "G.10 - Arıza Bulunamadı", "G.11 - Çalışmıyor", "G.12 - Kapalı Geliyor", "G.13 - Gaz Kaçak", "J.01 - Jig Kapak Kırık", "J.02 - Jig Kablo Kopuk", "J.03 - Jig Ayak Yok", "J.04 - Jig Arızalı", "J.05 - Jig Yay Arızalı", "J.06 - Jig Kapak Çıkık", "J.07 - Jig Kapak Arızalı", "K.01 - Kablo Arızalı", "K.02 - Kablo Kopuk", "K.03 - Kablo Çıkık", "K.04 - LGMV Kablosu Arızalı", "K.05 - LGMV Kablosu Kopuk", "K.06 - LGMV Kablosu Çıkık", "K.07 - LGMV Kablosu Yok", "M.01 - Mıknatıs Arızalı", "M.02 - Mıknatıs Yok", "M.03 - Mıknatıs Çıkık", "M.04 - Mıknatıs Kırık", "M.05 - Mıknatıs Gevşek", "M.06 - Mıknatıs Kopuk", "S.01 - Soket Arızalı", "S.02 - Soket Çıkık", "S.03 - Soket Kırık", "S.04 - Soket Kopuk", "S.05 - Soket Gevşemiş", "S.06 - Soket Kablo Arızalı", "S.07 - Soket Kablo Çıkık", "S.08 - Soket Kablo Kopuk", "S.09 - Terminal Çıkık/Kopuk", "S.10 - Terminal Arızalı", "S.11 - Soket Yok", "T.01 - Topraklama Hatası", "T.02 - Topraklama Eksik", "T.03 - Topraklama Mıknatıs", "T.04 - Topraklama Kablosu Arızalı", "T.05 - Topraklama Kablosu Kopuk", "T.06 - Topraklama Kablosu Çıkık", "T.07 - Topraklama Kablosu Soket Çıkık", "TS.01 - Yüksek Gerilim Hatası", "TS.02 - Yalıtım Hatası", "TS.03 - Kaçak Akım Hatası", "U.01 - Uçluk Arızalı", "U.02 - Uçluk Çıkık", "U.03 - Uçluk Kırık", "U.04 - Uçluk Kopuk", "U.05 - Uçluk Sıkışmış", "U.06 - Uçluk Yamuk", "U.07 - Uçluk Yapışmış", "U.08 - Uçluk Yanmış", "U.09 - Uçluk Yok", "U.10 - Uçluk soketten çıkmış", "U.11 - Kovan Arızalı", "U.12 - Kovan lehim erimiş", "U.13 - Kovan yapışmış", "U.14 - Kovan Yamuk", "U.15 - Kovan Kırık", "Y.01 - Yay Arızalı", "Y.02 - Yay Erimiş/Yanmış"];
-      const degisenParcaOptions = ["Uçluk", "Mıknatıs", "Soket", "LGMV Kablosu", "Yay", "Hortum", "Terminal", "Krokodil", "Pabuç", "Lehim", "Optokuplör", "Ayak", "Kovan", "Vida", "Kapak", "Kablo", "Wifi Modül", "Fiber Somun", "Filtre", "Conta", "Bara", "Fırça", "Kol Plastiği", "Kaplin", "Oring", "Somun", "Teflon", "Kol", "Röle", "Lamba", "Anahtar", "Sigorta", "Mandal"];
+      const degisenParcaOptions = ["Uçluk", "Mıknatıs", "Soket", "LGMV Kablosu", "Yay", "Hortum", "Terminal", "Krokodil", "Pabuç", "Lehim", "Optokuplör", "Ayak", "Kovan", "Vida", "Kapak", "Kablo", "Wifi Modül", "Fiber Somun", "Filtre", "Conta", "Bara", "Fırça", "Kol Plastiği", "Kaplin", "Oring", "Somun", "Teflon", "Kol", "Röle", "Lamba", "Anahtar", "Sigorta", "Mandal", "Güç Adaptörü"];
       const parcaAdediOptions = Array.from({length: 10}, (_, i) => (i+1).toString());
 
       useEffect(() => {
@@ -132,7 +132,8 @@
         if (!formData.hataKoduManual && formData.hataKodu && !hataKoduOptions.includes(formData.hataKodu)) {
           newErrors.hataKodu = 'Sadece listeden seçiniz';
         }
-        if (formData.degisenParca && !degisenParcaOptions.includes(formData.degisenParca)) {
+        // Değişen Parça: eğer manuel giriş değilse, listedeki bir değer olmalı
+        if (!formData.degisenParcaManual && formData.degisenParca && !degisenParcaOptions.includes(formData.degisenParca)) {
           newErrors.degisenParca = 'Sadece listeden seçiniz';
         }
         if (formData.parcaAdedi && !parcaAdediOptions.includes(formData.parcaAdedi)) {
@@ -502,22 +503,45 @@
                   errors.hataKodu && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.hataKodu)
                 ]
               ),
-              // Değişen Parça (dropdown, search, no manual entry)
+              // Değişen Parça (dropdown, search, manuel giriş EKLENDİ)
               React.createElement(
                 'div',
                 { className: 'mb-4' },
                 [
                   React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Değişen Parça'),
-                  // Manuel giriş kaldırıldı!
-                  React.createElement(SearchableSelect, {
-                    name: 'degisenParca',
-                    value: formData.degisenParca,
-                    options: degisenParcaOptions,
-                    onChange: (e) => handleSelectChange(e, degisenParcaOptions),
-                    placeholder: 'Seçiniz',
-                    required: false,
-                    error: errors.degisenParca
-                  }),
+                  React.createElement(
+                    'div',
+                    { className: 'flex items-center mb-2' },
+                    [
+                      React.createElement('input', {
+                        type: 'checkbox',
+                        name: 'degisenParcaManual',
+                        checked: formData.degisenParcaManual,
+                        onChange: handleChange,
+                        className: 'mr-2'
+                      }),
+                      React.createElement('span', null, 'Manuel Giriş')
+                    ]
+                  ),
+                  formData.degisenParcaManual
+                    ? React.createElement('input', {
+                        type: 'text',
+                        name: 'customDegisenParca',
+                        value: formData.customDegisenParca,
+                        onChange: handleChange,
+                        className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
+                        placeholder: 'Değişen parça adını giriniz'
+                      })
+                    : React.createElement(SearchableSelect, {
+                        name: 'degisenParca',
+                        value: formData.degisenParca,
+                        options: degisenParcaOptions,
+                        onChange: (e) => handleSelectChange(e, degisenParcaOptions),
+                        placeholder: 'Seçiniz',
+                        required: false,
+                        error: errors.degisenParca
+                      }),
+                  errors.degisenParca && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.degisenParca)
                 ]
               ),
               // Parça Adedi (dropdown, search, no manual entry)
