@@ -48,11 +48,7 @@
         hataKodu: '',
         degisenParca: '',
         parcaAdedi: '',
-        aciklama: '',
-        hataKoduManual: false,
-        degisenParcaManual: false,
-        customHataKodu: '',
-        customDegisenParca: ''
+        aciklama: ''
       });
 
       const [tableData, setTableData] = useState([]);
@@ -61,7 +57,7 @@
       const [isAdmin, setIsAdmin] = useState(false);
       const [adminInput, setAdminInput] = useState('');
       const [adminError, setAdminError] = useState('');
-      const [isLoading, setIsLoading] = useState(false); // Yükleme göstergesi eklendi
+      const [isLoading, setIsLoading] = useState(false);
 
       const vardiyaOptions = ['Sabah', 'Akşam'];
       const hatOptions = ["İç", "İç 1", "İç 2", "Dış","Dış 1","Dış 2", "Mix", "CAC", "Genel"];
@@ -114,7 +110,7 @@
         if (!formData.tarih) newErrors.tarih = 'Tarih zorunludur';
         if (!formData.vardiya) newErrors.vardiya = 'Vardiya zorunludur';
         if (!formData.hat) newErrors.hat = 'Hat zorunludur';
-        if (!formData.hataKodu && !formData.customHataKodu) newErrors.hataKodu = 'Hata Kodu zorunludur';
+        if (!formData.hataKodu) newErrors.hataKodu = 'Hata Kodu zorunludur';
         if (!formData.aciklama) newErrors.aciklama = 'Açıklama zorunludur';
         // Only allow valid values for select-only fields
         if (formData.vardiya && !vardiyaOptions.includes(formData.vardiya)) {
@@ -129,11 +125,10 @@
         if (formData.jigNo && !jigNoOptions.includes(formData.jigNo)) {
           newErrors.jigNo = 'Sadece listeden seçiniz';
         }
-        if (!formData.hataKoduManual && formData.hataKodu && !hataKoduOptions.includes(formData.hataKodu)) {
+        if (formData.hataKodu && !hataKoduOptions.includes(formData.hataKodu)) {
           newErrors.hataKodu = 'Sadece listeden seçiniz';
         }
-        // Değişen Parça: eğer manuel giriş değilse, listedeki bir değer olmalı
-        if (!formData.degisenParcaManual && formData.degisenParca && !degisenParcaOptions.includes(formData.degisenParca)) {
+        if (formData.degisenParca && !degisenParcaOptions.includes(formData.degisenParca)) {
           newErrors.degisenParca = 'Sadece listeden seçiniz';
         }
         if (formData.parcaAdedi && !parcaAdediOptions.includes(formData.parcaAdedi)) {
@@ -148,7 +143,7 @@
       const handleSubmit = async (e) => {
         e.preventDefault();
         if (validateForm()) {
-          setIsLoading(true); // Yükleme başlat
+          setIsLoading(true);
           const newEntry = {
             sicilNo: formData.sicilNo,
             tarih: formData.tarih,
@@ -156,8 +151,8 @@
             hat: formData.hat || '-',
             dummyNo: formData.dummyNo || '-',
             jigNo: formData.jigNo || '-',
-            hataKodu: formData.hataKoduManual ? formData.customHataKodu : formData.hataKodu,
-            degisenParca: formData.degisenParcaManual ? formData.customDegisenParca : formData.degisenParca || '-',
+            hataKodu: formData.hataKodu,
+            degisenParca: formData.degisenParca || '-',
             parcaAdedi: formData.parcaAdedi || '-',
             aciklama: formData.aciklama
           };
@@ -185,14 +180,10 @@
             hataKodu: '',
             degisenParca: '',
             parcaAdedi: '',
-            aciklama: '',
-            hataKoduManual: false,
-            degisenParcaManual: false,
-            customHataKodu: '',
-            customDegisenParca: ''
+            aciklama: ''
           });
           setErrors({});
-          setIsLoading(false); // Yükleme durdur
+          setIsLoading(false);
         } else {
           setSubmissionMessage('Lütfen tüm zorunlu alanları doldurun.');
         }
@@ -304,7 +295,6 @@
 
       // Yükleme spinnerı bileşeni
       function Spinner() {
-        // tailwind css spinner
         return React.createElement(
           'svg',
           {
@@ -462,86 +452,40 @@
                   }),
                 ]
               ),
-              // Hata Kodu
+              // Hata Kodu (dropdown, search, no manual entry, MANUEL GİRİŞ YOK)
               React.createElement(
                 'div',
                 { className: 'mb-4' },
                 [
                   React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Hata Kodu *'),
-                  React.createElement(
-                    'div',
-                    { className: 'flex items-center mb-2' },
-                    [
-                      React.createElement('input', {
-                        type: 'checkbox',
-                        name: 'hataKoduManual',
-                        checked: formData.hataKoduManual,
-                        onChange: handleChange,
-                        className: 'mr-2'
-                      }),
-                      React.createElement('span', null, 'Manuel Giriş')
-                    ]
-                  ),
-                  formData.hataKoduManual
-                    ? React.createElement('input', {
-                        type: 'text',
-                        name: 'customHataKodu',
-                        value: formData.customHataKodu,
-                        onChange: handleChange,
-                        className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
-                        placeholder: 'Hata kodunu giriniz'
-                      })
-                    : React.createElement(SearchableSelect, {
-                        name: 'hataKodu',
-                        value: formData.hataKodu,
-                        options: hataKoduOptions,
-                        onChange: (e) => handleSelectChange(e, hataKoduOptions),
-                        placeholder: 'Seçiniz',
-                        required: true,
-                        error: errors.hataKodu
-                      }),
+                  React.createElement(SearchableSelect, {
+                    name: 'hataKodu',
+                    value: formData.hataKodu,
+                    options: hataKoduOptions,
+                    onChange: (e) => handleSelectChange(e, hataKoduOptions),
+                    placeholder: 'Seçiniz',
+                    required: true,
+                    error: errors.hataKodu
+                  }),
                   errors.hataKodu && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.hataKodu)
                 ]
               ),
-              // Değişen Parça (dropdown, search, manuel giriş EKLENDİ)
+              // Değişen Parça (dropdown, search, no manual entry)
               React.createElement(
                 'div',
                 { className: 'mb-4' },
                 [
                   React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Değişen Parça'),
-                  React.createElement(
-                    'div',
-                    { className: 'flex items-center mb-2' },
-                    [
-                      React.createElement('input', {
-                        type: 'checkbox',
-                        name: 'degisenParcaManual',
-                        checked: formData.degisenParcaManual,
-                        onChange: handleChange,
-                        className: 'mr-2'
-                      }),
-                      React.createElement('span', null, 'Manuel Giriş')
-                    ]
-                  ),
-                  formData.degisenParcaManual
-                    ? React.createElement('input', {
-                        type: 'text',
-                        name: 'customDegisenParca',
-                        value: formData.customDegisenParca,
-                        onChange: handleChange,
-                        className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
-                        placeholder: 'Değişen parça adını giriniz'
-                      })
-                    : React.createElement(SearchableSelect, {
-                        name: 'degisenParca',
-                        value: formData.degisenParca,
-                        options: degisenParcaOptions,
-                        onChange: (e) => handleSelectChange(e, degisenParcaOptions),
-                        placeholder: 'Seçiniz',
-                        required: false,
-                        error: errors.degisenParca
-                      }),
-                  errors.degisenParca && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.degisenParca)
+                  // Manuel giriş kaldırıldı!
+                  React.createElement(SearchableSelect, {
+                    name: 'degisenParca',
+                    value: formData.degisenParca,
+                    options: degisenParcaOptions,
+                    onChange: (e) => handleSelectChange(e, degisenParcaOptions),
+                    placeholder: 'Seçiniz',
+                    required: false,
+                    error: errors.degisenParca
+                  }),
                 ]
               ),
               // Parça Adedi (dropdown, search, no manual entry)
@@ -578,7 +522,7 @@
                   errors.aciklama && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.aciklama)
                 ]
               ),
-              // Kaydet Butonu ve Kayıt Mesajı (YATAY YAN YANA)
+              // Kaydet Butonu ve Kayıt Mesajı
               React.createElement(
                 'div',
                 { className: 'flex items-center gap-4' },
@@ -588,7 +532,7 @@
                     {
                       type: 'submit',
                       className: `bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 flex items-center gap-2 min-w-[90px]`,
-                      disabled: isLoading // Yükleme sırasında buton kilitli
+                      disabled: isLoading
                     },
                     [
                       isLoading && React.createElement(Spinner, { key: 'spinner' }),
