@@ -100,6 +100,7 @@
         setErrors(prev => ({ ...prev, [name]: null }));
       };
 
+      // ---- VALIDATION UPDATED ----
       const validateForm = () => {
         const newErrors = {};
         if (!formData.sicilNo) {
@@ -110,9 +111,17 @@
         if (!formData.tarih) newErrors.tarih = 'Tarih zorunludur';
         if (!formData.vardiya) newErrors.vardiya = 'Vardiya zorunludur';
         if (!formData.hat) newErrors.hat = 'Hat zorunludur';
-        if (!formData.hataKodu) newErrors.hataKodu = 'Hata Kodu zorunludur';
         if (!formData.aciklama) newErrors.aciklama = 'Açıklama zorunludur';
-        // Only allow valid values for select-only fields
+
+        // --- Yeni validasyon kuralları ---
+        if (formData.degisenParca && !formData.parcaAdedi) {
+          newErrors.parcaAdedi = 'Parça Adedi seçilmek zorunda (Değişen Parça seçildiğinde)';
+        }
+        if (formData.parcaAdedi && !formData.degisenParca) {
+          newErrors.degisenParca = 'Değişen Parça seçilmek zorunda (Parça Adedi seçildiğinde)';
+        }
+
+        // Sadece listeden seçme validasyonları
         if (formData.vardiya && !vardiyaOptions.includes(formData.vardiya)) {
           newErrors.vardiya = 'Sadece listeden seçiniz';
         }
@@ -151,7 +160,7 @@
             hat: formData.hat || '-',
             dummyNo: formData.dummyNo || '-',
             jigNo: formData.jigNo || '-',
-            hataKodu: formData.hataKodu,
+            hataKodu: formData.hataKodu || '-', // boş ise - koy
             degisenParca: formData.degisenParca || '-',
             parcaAdedi: formData.parcaAdedi || '-',
             aciklama: formData.aciklama
@@ -452,19 +461,19 @@
                   }),
                 ]
               ),
-              // Hata Kodu (dropdown, search, no manual entry, MANUEL GİRİŞ YOK)
+              // Hata Kodu (dropdown, search, no manual entry, zorunlu değil!)
               React.createElement(
                 'div',
                 { className: 'mb-4' },
                 [
-                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Hata Kodu *'),
+                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Hata Kodu'),
                   React.createElement(SearchableSelect, {
                     name: 'hataKodu',
                     value: formData.hataKodu,
                     options: hataKoduOptions,
                     onChange: (e) => handleSelectChange(e, hataKoduOptions),
                     placeholder: 'Seçiniz',
-                    required: true,
+                    required: false,
                     error: errors.hataKodu
                   }),
                   errors.hataKodu && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.hataKodu)
@@ -476,7 +485,6 @@
                 { className: 'mb-4' },
                 [
                   React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Değişen Parça'),
-                  // Manuel giriş kaldırıldı!
                   React.createElement(SearchableSelect, {
                     name: 'degisenParca',
                     value: formData.degisenParca,
@@ -486,6 +494,7 @@
                     required: false,
                     error: errors.degisenParca
                   }),
+                  errors.degisenParca && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.degisenParca)
                 ]
               ),
               // Parça Adedi (dropdown, search, no manual entry)
@@ -503,6 +512,7 @@
                     required: false,
                     error: errors.parcaAdedi
                   }),
+                  errors.parcaAdedi && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.parcaAdedi)
                 ]
               ),
               // Açıklama
