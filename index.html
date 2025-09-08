@@ -7,22 +7,20 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <!-- SheetJS: Excel'e aktarım için -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
   <div id="root"></div>
   <script>
     const { useState, useEffect } = React;
 
-    function isValidSicilNo(sicilNo) {
-      return sicilNo === "00n" || sicilNo === "00m" || sicilNo === "00eng";
+    function isValidKullaniciNo(kullaniciNo) {
+      return kullaniciNo === "00n" || kullaniciNo === "00m" || kullaniciNo === "00eng";
     }
 
     const ADMIN_PASSWORD = "lqcadmin012";
 
     const TABLE_HEADERS = [
-      "Sicil No", "Tarih", "Vardiya", "Hat", "Dummy No",
+      "Kullanıcı No", "Tarih", "Vardiya", "Hat", "Dummy No",
       "Jig No", "Hata Kodu", "Değişen Parça", "Parça Adedi", "Açıklama"
     ];
 
@@ -37,9 +35,172 @@
       return arr;
     };
 
+    // Animasyonlu onay kutusu
+    function Modal({ open, onClose, onConfirm, loading, message, formData }) {
+      if (!open) return null;
+
+      // Seçenekler tablosu için max yükseklik: 400px
+      // Yalnızca çok uzun veri girilirse (örneğin Açıklama çok uzun girilirse) kaydırma olacak.
+      return React.createElement(
+        'div',
+        {
+          className: 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-all duration-300'
+        },
+        React.createElement(
+          'div',
+          {
+            className: 'relative bg-gradient-to-br from-white via-gray-50 to-blue-100 rounded-xl shadow-2xl px-8 py-7 w-full max-w-md border border-blue-200 animate-fadein',
+            style: { animation: 'fadein 0.35s' }
+          },
+          [
+            React.createElement('button', {
+              key: 'closebtn',
+              onClick: !loading ? onClose : null,
+              className: `absolute top-3 right-3 text-gray-400 hover:text-gray-700 transition ${loading ? 'opacity-40 cursor-not-allowed' : ''}`,
+              tabIndex: 0,
+              'aria-label': 'Kapat'
+            }, React.createElement('svg', {
+              xmlns: 'http://www.w3.org/2000/svg',
+              fill: 'none',
+              viewBox: '0 0 24 24',
+              stroke: 'currentColor',
+              className: 'w-6 h-6'
+            },
+              React.createElement('path', {
+                strokeLinecap: 'round',
+                strokeLinejoin: 'round',
+                strokeWidth: 2,
+                d: 'M6 18L18 6M6 6l12 12'
+              })
+            )),
+            React.createElement('div', { className: 'flex flex-col items-center' }, [
+              React.createElement('div', { className: 'mb-2' },
+                React.createElement('div', {
+                  className: 'w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center shadow-lg mb-1'
+                },
+                  React.createElement('svg', {
+                    xmlns: 'http://www.w3.org/2000/svg',
+                    fill: 'none',
+                    viewBox: '0 0 24 24',
+                    stroke: 'currentColor',
+                    className: 'w-9 h-9 text-blue-500'
+                  },
+                    React.createElement('path', {
+                      strokeLinecap: 'round',
+                      strokeLinejoin: 'round',
+                      strokeWidth: 2,
+                      d: 'M13 16h-1v-4h-1m1 4v-4m0 0V9a1 1 0 00-1-1h-1a1 1 0 00-1 1v3m4 0h1v4h1m-1-4v4m0 0V9a1 1 0 00-1-1h-1a1 1 0 00-1 1v3'
+                    })
+                  )
+                )
+              ),
+              React.createElement('h2', { className: 'text-2xl font-bold text-blue-900 mb-2' }, 'Kaydı Onayla'),
+              React.createElement('p', { className: 'mb-3 text-gray-500 text-center' }, 'Lütfen girdiğiniz bilgileri kontrol edip işlemi onaylayın.'),
+              React.createElement('div', {
+                className: 'rounded-lg border border-blue-200 bg-white p-4 mb-3 w-full text-sm',
+                style: { maxHeight: '400px', overflowY: 'auto' }
+              },
+                React.createElement('table', { className: 'w-full' },
+                  React.createElement('tbody', null,
+                    Object.entries(formData).map(([key, val]) =>
+                      React.createElement('tr', { key },
+                        [
+                          React.createElement('td', { className: 'py-1 pr-3 text-gray-500 font-semibold w-1/2 align-top' }, ({
+                            kullaniciNo: "Kullanıcı No",
+                            tarih: "Tarih",
+                            vardiya: "Vardiya",
+                            hat: "Hat",
+                            dummyNo: "Dummy No",
+                            jigNo: "Jig No",
+                            hataKodu: "Hata Kodu",
+                            degisenParca: "Değişen Parça",
+                            parcaAdedi: "Parça Adedi",
+                            aciklama: "Açıklama"
+                          })[key] || key),
+                          React.createElement('td', { className: 'py-1 pl-1 text-gray-700 align-top' }, val || "-")
+                        ]
+                      )
+                    )
+                  )
+                )
+              ),
+              message && React.createElement(
+                'div',
+                {
+                  className: `mb-3 px-4 py-2 rounded text-center font-semibold transition-all duration-300
+                    ${message.includes('başarıyla') ? 'bg-green-50 text-green-700 border border-green-200' :
+                      message.includes('kaydedilemedi') ? 'bg-red-50 text-red-600 border border-red-200' :
+                      'bg-blue-50 text-blue-700 border border-blue-200'}`
+                },
+                message
+              ),
+              loading && React.createElement(
+                'div',
+                { className: 'flex items-center justify-center py-2 mb-3' },
+                React.createElement(
+                  'svg',
+                  {
+                    className: 'animate-spin h-6 w-6 text-blue-500 mx-auto',
+                    xmlns: 'http://www.w3.org/2000/svg',
+                    fill: 'none',
+                    viewBox: '0 0 24 24'
+                  },
+                  React.createElement('circle', {
+                    className: 'opacity-25',
+                    cx: '12', cy: '12', r: '10', stroke: 'currentColor', 'stroke-width': '4'
+                  }),
+                  React.createElement('path', {
+                    className: 'opacity-75',
+                    fill: 'currentColor',
+                    d: 'M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z'
+                  })
+                )
+              ),
+              (!loading && !message) && React.createElement(
+                'div',
+                { className: 'flex justify-end gap-2 w-full mt-2' },
+                [
+                  React.createElement(
+                    'button',
+                    {
+                      type: 'button',
+                      onClick: onClose,
+                      className: 'bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition font-semibold border border-gray-300'
+                    },
+                    'Vazgeç'
+                  ),
+                  React.createElement(
+                    'button',
+                    {
+                      type: 'button',
+                      onClick: onConfirm,
+                      className: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded hover:from-blue-600 hover:to-blue-700 transition font-semibold shadow-md border border-blue-400'
+                    },
+                    'Onayla ve Kaydet'
+                  )
+                ]
+              )
+            ])
+          ]
+        )
+      );
+    }
+
+    // Fade-in animasyon tanımı
+    const style = document.createElement("style");
+    style.innerHTML = `
+      @keyframes fadein {
+        from { opacity: 0; transform: scale(0.9);}
+        to { opacity: 1; transform: scale(1);}
+      }
+      .animate-fadein { animation: fadein 0.35s;}
+    `;
+    document.head.appendChild(style);
+
+    // --- Uygulama ---
     const App = () => {
       const [formData, setFormData] = useState({
-        sicilNo: '',
+        kullaniciNo: '',
         tarih: new Date().toISOString().split('T')[0],
         vardiya: '',
         hat: '',
@@ -59,13 +220,18 @@
       const [adminError, setAdminError] = useState('');
       const [isLoading, setIsLoading] = useState(false);
 
+      // Modal States
+      const [isModalOpen, setIsModalOpen] = useState(false);
+      const [modalLoading, setModalLoading] = useState(false);
+      const [modalMessage, setModalMessage] = useState('');
+
       const vardiyaOptions = ['Sabah', 'Akşam'];
       const hatOptions = ["İç", "İç 1", "İç 2", "Dış","Dış 1","Dış 2", "Mix", "CAC", "Genel"];
       const dummyNoOptions = Array.from({length: 42}, (_, i) => (i+1).toString());
       const jigNoOptions = generateJigNoOptions();
-      const hataKoduOptions = ["B.01 - Bara Fırça Çıkık", "B.02 - Bara Yayı", "B.03 - Bara Kablosu Çıkık", "B.04 - Bara Kablosu Kopuk", "B.05 - Bara Çıkık", "B.06 - Barada Elektrik Yok", "B.07 - Bara Sıkışmış", "B.08 - Bara Soketi Çıkık", "B.09 - Bara Pabuç Arızalı", "B.10 - Bara Kırık", "B.11 - Bara Fırça Kırık", "B.12 - Bara Arızalı", "D.01 - Waiting", "D.02 - Kol Çıkık", "D.03 - Kol Kırık", "D.04 - Kol Gevşek", "D.05 - Kol Plastiği Eksik", "D.06 - Kol Arızalı", "D.07 - Dummy Kablo Kopuk", "D.08 - Dummy Kablo Çıkık", "D.09 - Haberleşme Hatası", "D.11 - Ekran Yok/Kapalı", "D.12 - Ekran Yerinden Çıkık", "D.13 - Enerji Yok", "D.14 - Eeprom Okumuyor", "D.15 - Ürün Çalıştırmıyor", "D.16 - Buzzer Arızası", "D.17 - Basınç Düşük", "D.18 - Basınç Yüksek", "D.19 - Basınçlar Ters", "D.20 - Basınç Göstermiyor", "D.21 - Basınç Hatası", "D.22 - Data Atmıyor", "G.01 - Sigorta Arızalı", "G.02 - Lehim Kopuk", "G.03 - Krokodil Kopuk", "G.04 - Krokodil Kırık", "G.05 - Krokodil Arızalı", "G.06 - Vida Yok", "G.07 - Ayak Yok", "G.08 - Ayak Çıkık", "G.09 - Ayak Arızalı", "G.10 - Arıza Bulunamadı", "G.11 - Çalışmıyor", "G.12 - Kapalı Geliyor", "G.13 - Gaz Kaçak", "J.01 - Jig Kapak Kırık", "J.02 - Jig Kablo Kopuk", "J.03 - Jig Ayak Yok", "J.04 - Jig Arızalı", "J.05 - Jig Yay Arızalı", "J.06 - Jig Kapak Çıkık", "J.07 - Jig Kapak Arızalı", "K.01 - Kablo Arızalı", "K.02 - Kablo Kopuk", "K.03 - Kablo Çıkık", "K.04 - LGMV Kablosu Arızalı", "K.05 - LGMV Kablosu Kopuk", "K.06 - LGMV Kablosu Çıkık", "K.07 - LGMV Kablosu Yok", "M.01 - Mıknatıs Arızalı", "M.02 - Mıknatıs Yok", "M.03 - Mıknatıs Çıkık", "M.04 - Mıknatıs Kırık", "M.05 - Mıknatıs Gevşek", "M.06 - Mıknatıs Kopuk", "S.01 - Soket Arızalı", "S.02 - Soket Çıkık", "S.03 - Soket Kırık", "S.04 - Soket Kopuk", "S.05 - Soket Gevşemiş", "S.06 - Soket Kablo Arızalı", "S.07 - Soket Kablo Çıkık", "S.08 - Soket Kablo Kopuk", "S.09 - Terminal Çıkık/Kopuk", "S.10 - Terminal Arızalı", "S.11 - Soket Yok", "T.01 - Topraklama Hatası", "T.02 - Topraklama Eksik", "T.03 - Topraklama Mıknatıs", "T.04 - Topraklama Kablosu Arızalı", "T.05 - Topraklama Kablosu Kopuk", "T.06 - Topraklama Kablosu Çıkık", "T.07 - Topraklama Kablosu Soket Çıkık", "TS.01 - Yüksek Gerilim Hatası", "TS.02 - Yalıtım Hatası", "TS.03 - Kaçak Akım Hatası", "U.01 - Uçluk Arızalı", "U.02 - Uçluk Çıkık", "U.03 - Uçluk Kırık", "U.04 - Uçluk Kopuk", "U.05 - Uçluk Sıkışmış", "U.06 - Uçluk Yamuk", "U.07 - Uçluk Yapışmış", "U.08 - Uçluk Yanmış", "U.09 - Uçluk Yok", "U.10 - Uçluk soketten çıkmış", "U.11 - Kovan Arızalı", "U.12 - Kovan lehim erimiş", "U.13 - Kovan yapışmış", "U.14 - Kovan Yamuk", "U.15 - Kovan Kırık", "Y.01 - Yay Arızalı", "Y.02 - Yay Erimiş/Yanmış"];
-      const degisenParcaOptions = ["Uçluk", "Mıknatıs", "Soket", "LGMV Kablosu", "Yay", "Hortum", "Terminal", "Krokodil", "Pabuç", "Lehim", "Optokuplör", "Ayak", "Kovan", "Vida", "Kapak", "Kablo", "Wifi Modül", "Fiber Somun", "Filtre", "Conta", "Bara", "Fırça", "Kol Plastiği", "Kaplin", "Oring", "Somun", "Teflon", "Kol", "Röle", "Lamba", "Anahtar", "Sigorta", "Mandal", "Güç Adaptörü"];
-      const parcaAdediOptions = Array.from({length: 10}, (_, i) => (i+1).toString());
+      const hataKoduOptions = ["0.0 Hata Kodu Yok", "B.01 - Bara Fırça Çıkık", "B.02 - Bara Yayı", "B.03 - Bara Kablosu Çıkık", "B.04 - Bara Kablosu Kopuk", "B.05 - Bara Çıkık", "B.06 - Barada Elektrik Yok", "B.07 - Bara Sıkışmış", "B.08 - Bara Soketi Çıkık", "B.09 - Bara Pabuç Arızalı", "B.10 - Bara Kırık", "B.11 - Bara Fırça Kırık", "B.12 - Bara Arızalı", "D.01 - Waiting", "D.02 - Kol Çıkık", "D.03 - Kol Kırık", "D.04 - Kol Gevşek", "D.05 - Kol Plastiği Eksik", "D.06 - Kol Arızalı", "D.07 - Dummy Kablo Kopuk", "D.08 - Dummy Kablo Çıkık", "D.09 - Haberleşme Hatası", "D.11 - Ekran Yok/Kapalı", "D.12 - Ekran Yerinden Çıkık", "D.13 - Enerji Yok", "D.14 - Eeprom Okumuyor", "D.15 - Ürün Çalıştırmıyor", "D.16 - Buzzer Arızası", "D.17 - Basınç Düşük", "D.18 - Basınç Yüksek", "D.19 - Basınçlar Ters", "D.20 - Basınç Göstermiyor", "D.21 - Basınç Hatası", "D.22 - Data Atmıyor", "G.01 - Sigorta Arızalı", "G.02 - Lehim Kopuk", "G.03 - Krokodil Kopuk", "G.04 - Krokodil Kırık", "G.05 - Krokodil Arızalı", "G.06 - Vida Yok", "G.07 - Ayak Yok", "G.08 - Ayak Çıkık", "G.09 - Ayak Arızalı", "G.10 - Arıza Bulunamadı", "G.11 - Çalışmıyor", "G.12 - Kapalı Geliyor", "G.13 - Gaz Kaçak", "J.01 - Jig Kapak Kırık", "J.02 - Jig Kablo Kopuk", "J.03 - Jig Ayak Yok", "J.04 - Jig Arızalı", "J.05 - Jig Yay Arızalı", "J.06 - Jig Kapak Çıkık", "J.07 - Jig Kapak Arızalı", "K.01 - Kablo Arızalı", "K.02 - Kablo Kopuk", "K.03 - Kablo Çıkık", "K.04 - LGMV Kablosu Arızalı", "K.05 - LGMV Kablosu Kopuk", "K.06 - LGMV Kablosu Çıkık", "K.07 - LGMV Kablosu Yok", "M.01 - Mıknatıs Arızalı", "M.02 - Mıknatıs Yok", "M.03 - Mıknatıs Çıkık", "M.04 - Mıknatıs Kırık", "M.05 - Mıknatıs Gevşek", "M.06 - Mıknatıs Kopuk", "S.01 - Soket Arızalı", "S.02 - Soket Çıkık", "S.03 - Soket Kırık", "S.04 - Soket Kopuk", "S.05 - Soket Gevşemiş", "S.06 - Soket Kablo Arızalı", "S.07 - Soket Kablo Çıkık", "S.08 - Soket Kablo Kopuk", "S.09 - Terminal Çıkık/Kopuk", "S.10 - Terminal Arızalı", "S.11 - Soket Yok", "T.01 - Topraklama Hatası", "T.02 - Topraklama Eksik", "T.03 - Topraklama Mıknatıs", "T.04 - Topraklama Kablosu Arızalı", "T.05 - Topraklama Kablosu Kopuk", "T.06 - Topraklama Kablosu Çıkık", "T.07 - Topraklama Kablosu Soket Çıkık", "TS.01 - Yüksek Gerilim Hatası", "TS.02 - Yalıtım Hatası", "TS.03 - Kaçak Akım Hatası", "U.01 - Uçluk Arızalı", "U.02 - Uçluk Çıkık", "U.03 - Uçluk Kırık", "U.04 - Uçluk Kopuk", "U.05 - Uçluk Sıkışmış", "U.06 - Uçluk Yamuk", "U.07 - Uçluk Yapışmış", "U.08 - Uçluk Yanmış", "U.09 - Uçluk Yok", "U.10 - Uçluk soketten çıkmış", "U.11 - Kovan Arızalı", "U.12 - Kovan lehim erimiş", "U.13 - Kovan yapışmış", "U.14 - Kovan Yamuk", "U.15 - Kovan Kırık", "Y.01 - Yay Arızalı", "Y.02 - Yay Erimiş/Yanmış"];
+      const degisenParcaOptions = ["Değişen Parça Yok", "Uçluk", "Mıknatıs", "Soket", "LGMV Kablosu", "Yay", "Hortum", "Terminal", "Krokodil", "Pabuç", "Lehim", "Optokuplör", "Ayak", "Kovan", "Vida", "Kapak", "Kablo", "Wifi Modül", "Fiber Somun", "Filtre", "Conta", "Bara", "Fırça", "Kol Plastiği", "Kaplin", "Oring", "Somun", "Teflon", "Kol", "Röle", "Lamba", "Anahtar", "Sigorta", "Mandal", "Güç Adaptörü"];
+      const parcaAdediOptions = Array.from({length: 21}, (_, i) => i.toString());
 
       useEffect(() => {
         try {
@@ -90,7 +256,6 @@
       // For select-only fields, ensure that only valid options can be selected
       const handleSelectChange = (e, options) => {
         const { name, value } = e.target;
-        // Boş değer de kabul, options içinde "" yoksa da silinebilsin
         if (value === "" || options.includes(value)) {
           setFormData(prev => ({
             ...prev,
@@ -100,13 +265,81 @@
         setErrors(prev => ({ ...prev, [name]: null }));
       };
 
+      // Yeni: Kaydet butonuna tıklanınca modal açılır
+      const handlePreSubmit = (e) => {
+        e.preventDefault();
+        if (validateForm()) {
+          setIsModalOpen(true);
+          setModalMessage('');
+        } else {
+          setSubmissionMessage('Lütfen tüm zorunlu alanları doldurun.');
+          setTimeout(() => setSubmissionMessage(''), 3000);
+        }
+      };
+
+      // Modal içinden kayıt işlemi başlatılır
+      const handleModalConfirm = async () => {
+        setModalLoading(true);
+        setModalMessage('Kaydediliyor...');
+        const newEntry = {
+          kullaniciNo: formData.kullaniciNo,
+          tarih: formData.tarih,
+          vardiya: formData.vardiya || '-',
+          hat: formData.hat || '-',
+          dummyNo: formData.dummyNo || '-',
+          jigNo: formData.jigNo || '-',
+          hataKodu: formData.hataKodu || '-',
+          degisenParca: formData.degisenParca || '-',
+          parcaAdedi: formData.parcaAdedi || '-',
+          aciklama: formData.aciklama
+        };
+        try {
+          await fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(newEntry)
+          });
+          setModalMessage('Kayıt başarıyla Google Sheets\'e eklendi!');
+          setTableData(prev => [...prev, newEntry]);
+        } catch (error) {
+          setModalMessage('Google Sheets\'e kaydedilemedi!');
+        }
+        setFormData({
+          kullaniciNo: '',
+          tarih: new Date().toISOString().split('T')[0],
+          vardiya: '',
+          hat: '',
+          dummyNo: '',
+          jigNo: '',
+          hataKodu: '',
+          degisenParca: '',
+          parcaAdedi: '',
+          aciklama: ''
+        });
+        setErrors({});
+        setModalLoading(false);
+        setTimeout(() => {
+          setIsModalOpen(false);
+          setModalMessage('');
+        }, 2000);
+      };
+
+      // Modalı kapat
+      const handleModalClose = () => {
+        setIsModalOpen(false);
+        setModalMessage('');
+      };
+
       // ---- VALIDATION UPDATED ----
       const validateForm = () => {
         const newErrors = {};
-        if (!formData.sicilNo) {
-          newErrors.sicilNo = 'Sicil No zorunludur';
-        } else if (!isValidSicilNo(formData.sicilNo)) {
-          newErrors.sicilNo = 'Geçersiz Sicil No';
+        if (!formData.kullaniciNo) {
+          newErrors.kullaniciNo = 'Kullanıcı No zorunludur';
+        } else if (!isValidKullaniciNo(formData.kullaniciNo)) {
+          newErrors.kullaniciNo = 'Geçersiz Kullanıcı No';
         }
         if (!formData.tarih) newErrors.tarih = 'Tarih zorunludur';
         if (!formData.vardiya) newErrors.vardiya = 'Vardiya zorunludur';
@@ -119,6 +352,20 @@
         }
         if (formData.parcaAdedi && !formData.degisenParca) {
           newErrors.degisenParca = 'Değişen Parça seçilmek zorunda (Parça Adedi seçildiğinde)';
+        }
+
+        // Dummy No veya Jig No girildiyse, Hata Kodu, Değişen Parça ve Parça Adedi zorunlu!
+        const hasDummyOrJig = !!formData.dummyNo || !!formData.jigNo;
+        if (hasDummyOrJig) {
+          if (!formData.hataKodu) {
+            newErrors.hataKodu = 'Hata Kodu zorunludur (Dummy No veya Jig No girildiğinde)';
+          }
+          if (!formData.degisenParca) {
+            newErrors.degisenParca = 'Değişen Parça zorunludur (Dummy No veya Jig No girildiğinde)';
+          }
+          if (!formData.parcaAdedi) {
+            newErrors.parcaAdedi = 'Parça Adedi zorunludur (Dummy No veya Jig No girildiğinde)';
+          }
         }
 
         // Sadece listeden seçme validasyonları
@@ -149,56 +396,6 @@
 
       const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcxXAPhNdk5wmIVBeGezpApExtnI1J9EK-RS3Dg6JYw7TWBJKijR6LcikIO_ASaZbF/exec";
 
-      const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (validateForm()) {
-          setIsLoading(true);
-          const newEntry = {
-            sicilNo: formData.sicilNo,
-            tarih: formData.tarih,
-            vardiya: formData.vardiya || '-',
-            hat: formData.hat || '-',
-            dummyNo: formData.dummyNo || '-',
-            jigNo: formData.jigNo || '-',
-            hataKodu: formData.hataKodu || '-', // boş ise - koy
-            degisenParca: formData.degisenParca || '-',
-            parcaAdedi: formData.parcaAdedi || '-',
-            aciklama: formData.aciklama
-          };
-          try {
-            await fetch(GOOGLE_SCRIPT_URL, {
-              method: "POST",
-              mode: "no-cors",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify(newEntry)
-            });
-            setSubmissionMessage('Kayıt başarıyla Google Sheets\'e eklendi!');
-            setTableData(prev => [...prev, newEntry]);
-          } catch (error) {
-            setSubmissionMessage('Google Sheets\'e kaydedilemedi!');
-          }
-          setFormData({
-            sicilNo: '',
-            tarih: new Date().toISOString().split('T')[0],
-            vardiya: '',
-            hat: '',
-            dummyNo: '',
-            jigNo: '',
-            hataKodu: '',
-            degisenParca: '',
-            parcaAdedi: '',
-            aciklama: ''
-          });
-          setErrors({});
-          setIsLoading(false);
-        } else {
-          setSubmissionMessage('Lütfen tüm zorunlu alanları doldurun.');
-        }
-        setTimeout(() => setSubmissionMessage(''), 3000);
-      };
-
       // Admin login işlemi
       const handleAdminLogin = (e) => {
         e.preventDefault();
@@ -225,28 +422,11 @@
         }
       };
 
-      // Tabloyu Excel'e aktar (sadece admin)
-      const handleExportExcel = () => {
-        const aoa = [
-          TABLE_HEADERS,
-          ...tableData.map(entry => [
-            entry.sicilNo, entry.tarih, entry.vardiya, entry.hat, entry.dummyNo,
-            entry.jigNo, entry.hataKodu, entry.degisenParca, entry.parcaAdedi, entry.aciklama
-          ])
-        ];
-        const worksheet = XLSX.utils.aoa_to_sheet(aoa);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Kayıtlar");
-        XLSX.writeFile(workbook, "veri_kayitlari.xlsx");
-      };
-
       // --- Custom select component for dropdown with search, but no manual entry ---
-      // "Seçimi Kaldır" seçeneği başta olacak şekilde tüm alanlarda kullanılabilir.
       function SearchableSelect({name, value, options, onChange, placeholder, required, error}) {
         const [search, setSearch] = useState("");
         const [showOptions, setShowOptions] = useState(false);
 
-        // Seçimi Kaldır seçeneğini başa ekle
         const allOptions = [{ label: 'Seçimi Kaldır', value: '' }, ...options.map(opt => ({ label: opt, value: opt }))];
         const filteredOptions = allOptions.filter(opt =>
           opt.label.toLowerCase().includes(search.toLowerCase())
@@ -254,7 +434,7 @@
 
         const handleSelect = (option) => {
           onChange({ target: { name, value: option.value } });
-          setSearch(""); // reset search
+          setSearch("");
           setShowOptions(false);
         };
 
@@ -355,25 +535,25 @@
           // Form
           React.createElement(
             'form',
-            { onSubmit: handleSubmit, className: 'bg-white p-6 rounded-lg shadow-md mb-6' },
+            { onSubmit: handlePreSubmit, className: 'bg-white p-6 rounded-lg shadow-md mb-6' },
             [
-              // Sicil No
+              // Kullanıcı No
               React.createElement(
                 'div',
                 { className: 'mb-4' },
                 [
-                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Sicil No *'),
+                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Kullanıcı No *'),
                   React.createElement('input', {
                     type: 'text',
-                    name: 'sicilNo',
-                    value: formData.sicilNo,
+                    name: 'kullaniciNo',
+                    value: formData.kullaniciNo,
                     onChange: handleChange,
                     className: 'mt-1 block w-full border border-gray-300 rounded-md p-2',
                     placeholder: 'Yazınız',
                     required: true,
                     autoComplete: 'off'
                   }),
-                  errors.sicilNo && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.sicilNo)
+                  errors.kullaniciNo && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.kullaniciNo)
                 ]
               ),
               // Tarih
@@ -393,7 +573,7 @@
                   errors.tarih && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.tarih)
                 ]
               ),
-              // Vardiya (dropdown, search, no manual entry)
+              // Vardiya
               React.createElement(
                 'div',
                 { className: 'mb-4' },
@@ -410,7 +590,7 @@
                   }),
                 ]
               ),
-              // Hat (dropdown, search, no manual entry)
+              // Hat
               React.createElement(
                 'div',
                 { className: 'mb-4' },
@@ -427,7 +607,7 @@
                   }),
                 ]
               ),
-              // Dummy No (dropdown, search, no manual entry)
+              // Dummy No
               React.createElement(
                 'div',
                 { className: 'mb-4' },
@@ -444,7 +624,7 @@
                   }),
                 ]
               ),
-              // Jig No (dropdown, search, no manual entry)
+              // Jig No
               React.createElement(
                 'div',
                 { className: 'mb-4' },
@@ -461,7 +641,7 @@
                   }),
                 ]
               ),
-              // Hata Kodu (dropdown, search, no manual entry, zorunlu değil!)
+              // Hata Kodu
               React.createElement(
                 'div',
                 { className: 'mb-4' },
@@ -479,7 +659,7 @@
                   errors.hataKodu && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.hataKodu)
                 ]
               ),
-              // Değişen Parça (dropdown, search, no manual entry)
+              // Değişen Parça
               React.createElement(
                 'div',
                 { className: 'mb-4' },
@@ -497,7 +677,7 @@
                   errors.degisenParca && React.createElement('p', { className: 'text-red-500 text-xs mt-1' }, errors.degisenParca)
                 ]
               ),
-              // Parça Adedi (dropdown, search, no manual entry)
+              // Parça Adedi
               React.createElement(
                 'div',
                 { className: 'mb-4' },
@@ -544,10 +724,7 @@
                       className: `bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 flex items-center gap-2 min-w-[90px]`,
                       disabled: isLoading
                     },
-                    [
-                      isLoading && React.createElement(Spinner, { key: 'spinner' }),
-                      isLoading ? 'Kaydediliyor...' : 'Kaydet'
-                    ]
+                    'Kaydet'
                   ),
                   submissionMessage && React.createElement(
                     'span',
@@ -558,7 +735,16 @@
               )
             ]
           ),
-          // Tablo ve Excel'e Aktar Düğmesi
+          // Modal (Onay Kutusu)
+          React.createElement(Modal, {
+            open: isModalOpen,
+            onClose: handleModalClose,
+            onConfirm: handleModalConfirm,
+            loading: modalLoading,
+            message: modalMessage,
+            formData
+          }),
+          // Tablo
           React.createElement(
             'div',
             { className: 'bg-white p-6 rounded-lg shadow-md overflow-x-auto' },
@@ -567,15 +753,7 @@
                 'div',
                 { className: 'flex justify-between items-center mb-4' },
                 [
-                  React.createElement('h2', { className: 'text-xl font-bold' }, 'Kayıtlar'),
-                  (isAdmin && tableData.length > 0) && React.createElement(
-                    'button',
-                    {
-                      onClick: handleExportExcel,
-                      className: 'bg-green-500 hover:bg-green-700 text-white px-4 py-2 rounded-md'
-                    },
-                    'Excel\'e Aktar'
-                  )
+                  React.createElement('h2', { className: 'text-xl font-bold' }, 'Kayıtlar')
                 ]
               ),
               tableData.length > 0 ? React.createElement(
@@ -604,7 +782,7 @@
                         'tr',
                         { key: index, className: 'hover:bg-gray-50' },
                         [
-                          React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.sicilNo),
+                          React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.kullaniciNo),
                           React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.tarih),
                           React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.vardiya),
                           React.createElement('td', { className: 'border border-gray-300 p-2' }, entry.hat),
