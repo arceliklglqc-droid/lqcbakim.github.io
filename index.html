@@ -368,6 +368,14 @@
           }
         }
 
+        // Hata Kodu girildiyse Dummy No veya Jig No zorunlu!
+        if (formData.hataKodu) {
+          if (!formData.dummyNo && !formData.jigNo) {
+            newErrors.dummyNo = 'Hata Kodu girildiğinde Dummy No veya Jig No zorunludur';
+            newErrors.jigNo = 'Hata Kodu girildiğinde Dummy No veya Jig No zorunludur';
+          }
+        }
+
         // Sadece listeden seçme validasyonları
         if (formData.vardiya && !vardiyaOptions.includes(formData.vardiya)) {
           newErrors.vardiya = 'Sadece listeden seçiniz';
